@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import BottomSheet from '../components/BottomSheet';
 import { supabase } from '../lib/supabase';
@@ -8,6 +8,34 @@ export default function Settings() {
     document.documentElement.getAttribute('data-theme') || 'light'
   );
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [name, setName] = useState('Carregando...');
+  const [email, setEmail] = useState('');
+  const [inputName, setInputName] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setEmail(user.email || '');
+        const autoName = user.email ? user.email.split('@')[0] : 'Profissional';
+        // Capitalize first letter of autoName
+        const capitalizedName = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+        const displayName = user.user_metadata?.full_name || capitalizedName;
+        setName(displayName);
+        setInputName(displayName);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+         const autoName = session.user.email ? session.user.email.split('@')[0] : 'Profissional';
+         const capitalizedName = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+         const displayName = session.user.user_metadata?.full_name || capitalizedName;
+         setName(displayName);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -15,10 +43,15 @@ export default function Settings() {
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Perfil atualizado com sucesso! (Mock)');
+    setName(inputName);
     setIsProfileOpen(false);
+
+    // Save to Supabase Auth Metadata natively
+    await supabase.auth.updateUser({
+      data: { full_name: inputName }
+    });
   };
 
   const handleLogout = async () => {
@@ -47,11 +80,15 @@ export default function Settings() {
         <div className="card mt-4">
           <h2 className="text-subtitle mb-2">Perfil Profissional</h2>
           <div className="flex-col gap-2">
-            <p className="text-body">Nome: Alex Silva</p>
-            <p className="text-body">Meta Mensal: R$ 8.000,00</p>
+            <p className="text-body"><span style={{fontWeight:600}}>Nome:</span> {name}</p>
+            <p className="text-body"><span style={{fontWeight:600}}>Email:</span> {email}</p>
+            <p className="text-body"><span style={{fontWeight:600}}>Meta Mensal:</span> R$ 8.000,00</p>
           </div>
           <button 
-            onClick={() => setIsProfileOpen(true)}
+            onClick={() => {
+              setInputName(name); // Reset input to current saved name
+              setIsProfileOpen(true);
+            }}
             className="btn btn-primary mt-4" 
             style={{ width: '100%' }}
           >
@@ -77,7 +114,14 @@ export default function Settings() {
         <form onSubmit={handleSaveProfile} className="flex-col gap-4">
           <div className="flex-col gap-1">
             <label className="text-small">Nome Completo</label>
-            <input type="text" defaultValue="Alex Silva" required className="card" style={{ padding: '0.75rem' }} />
+            <input 
+              type="text" 
+              value={inputName}
+              onChange={(e) => setInputName(e.target.value)}
+              required 
+              className="card" 
+              style={{ padding: '0.75rem' }} 
+            />
           </div>
           <div className="flex-col gap-1 mb-4">
             <label className="text-small">Meta Mensal (R$)</label>

@@ -1,12 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarPlus, MapPin, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BottomSheet from '../components/BottomSheet';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const navigate = useNavigate();
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [userName, setUserName] = useState('Profissional');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const autoName = user.email ? user.email.split('@')[0] : 'Profissional';
+        const capitalizedName = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+        setUserName(user.user_metadata?.full_name || capitalizedName);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+         const autoName = session.user.email ? session.user.email.split('@')[0] : 'Profissional';
+         const capitalizedName = autoName.charAt(0).toUpperCase() + autoName.slice(1);
+         setUserName(session.user.user_metadata?.full_name || capitalizedName);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleCreateSchedule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +51,11 @@ export default function Home() {
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
   };
 
+  // Pega a primeira letra do nome pra colocar no Avatar
+  const getInitial = () => {
+    return userName ? userName.charAt(0).toUpperCase() : 'A';
+  };
+
   return (
     <>
       <motion.div 
@@ -39,7 +66,7 @@ export default function Home() {
       >
         <motion.header variants={itemVariants} className="flex justify-between items-center mb-2">
           <div>
-            <h1 className="text-title">Olá, Alex 👋</h1>
+            <h1 className="text-title">Olá, {userName.split(' ')[0]} 👋</h1>
             <p className="text-small" style={{ color: 'var(--brand-primary)' }}>
               "A persistência é o caminho do êxito."
             </p>
@@ -50,7 +77,7 @@ export default function Home() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 'bold', fontSize: '1.25rem', boxShadow: 'var(--shadow-md)'
           }}>
-            A
+            {getInitial()}
           </div>
         </motion.header>
 
