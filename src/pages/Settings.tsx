@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { LogOut } from 'lucide-react';
 import BottomSheet from '../components/BottomSheet';
+import { supabase } from '../lib/supabase';
 
 export default function Settings() {
   const [theme, setTheme] = useState(
@@ -17,6 +19,10 @@ export default function Settings() {
     e.preventDefault();
     alert('Perfil atualizado com sucesso! (Mock)');
     setIsProfileOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
@@ -52,6 +58,15 @@ export default function Settings() {
             Editar Perfil
           </button>
         </div>
+
+        <button 
+          onClick={handleLogout}
+          className="btn btn-secondary flex items-center justify-center gap-2 mt-4" 
+          style={{ width: '100%', borderColor: 'var(--danger-color)', color: 'var(--danger-color)' }}
+        >
+          <LogOut size={20} />
+          Sair do Aplicativo
+        </button>
       </div>
 
       <BottomSheet
