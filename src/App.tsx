@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import BottomNavBar from './components/BottomNavBar';
 import VirtualAssistant from './components/VirtualAssistant';
